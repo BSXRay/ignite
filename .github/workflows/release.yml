@@ -8,19 +8,15 @@ on:
 jobs:
   build:
     name: Build ${{ matrix.target }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
             suffix: ""
           - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
             suffix: ""
-          - target: x86_64-pc-windows-gnu
-            os: ubuntu-latest
-            suffix: ".exe"
 
     steps:
       - name: Checkout
@@ -70,14 +66,9 @@ jobs:
           mkdir dist
           for dir in release-artifacts/*/; do
             name=$(basename "$dir")
-            if [[ "$name" == *windows* ]]; then
-              (cd "$dir" && zip -r "../../dist/ignite-master-${name}.zip" .)
-            else
-              (cd "$dir" && tar czf "../../dist/ignite-master-${name}.tar.gz" .)
-            fi
+            (cd "$dir" && tar czf "../../dist/ignite-master-${name}.tar.gz" .)
           done
 
-          # Create source archive
           git archive --format=tar.gz --prefix=ignite-master/ -o dist/ignite-master-source.tar.gz HEAD
 
       - name: Release
