@@ -43,7 +43,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "# ============================================================\n# Ignite Master – Installations-Skript\n# Holt den neuesten Release von GitHub oder baut aus dem Source.\n# ============================================================\n\nset -euo pipefail\n\nGITHUB_REPO=\"{{env.GITHUB_REPO}}\"\nRELEASE_URL=\"https://api.github.com/repos/${GITHUB_REPO}/releases/latest\"\n\nARCH=\"$(uname -m)\"\ncase \"${ARCH}\" in\n    x86_64)  TARGET=\"x86_64-unknown-linux-gnu\" ;;\n    aarch64) TARGET=\"aarch64-unknown-linux-gnu\" ;;\n    armv7l)  TARGET=\"armv7-unknown-linux-gnueabihf\" ;;\n    *)\n        echo \"[!] Unbekannte Architektur: ${ARCH}, baue aus Source...\"\n        BUILD_FROM_SOURCE=1\n        ;;\nesac\n\nmkdir -p /mnt/server\ncd /mnt/server\n\n# --------------------------------------------------\n# Versuche, ein Prebuilt-Binary aus dem Release zu laden\n# --------------------------------------------------\nif [ -z \"${BUILD_FROM_SOURCE:-}\" ]; then\n    echo \"[+] Architektur: ${ARCH} → Target: ${TARGET}\"\n    echo \"[+] Lade Release-Info von ${RELEASE_URL} ...\"\n\n    RELEASE_JSON=$(curl -sfL \"${RELEASE_URL}\" || echo \"\")\n\n    if [ -n \"${RELEASE_JSON}\" ]; then\n        BINARY_URL=$(echo \"${RELEASE_JSON}\" | \\\n            python3 -c \"import sys,json; data=json.load(sys.stdin); \\\n            assets=data.get('assets',[]); \\\n            matches=[a for a in assets if '${TARGET}' in a['name'] or '${TARGET}' in a['browser_download_url']]; \\\n            print(matches[0]['browser_download_url'] if matches else '')\" 2>/dev/null || echo \"\")\n\n        if [ -n \"${BINARY_URL}\" ]; then\n            echo \"[+] Lade Binary herunter: ${BINARY_URL}\"\n            curl -sfL \"${BINARY_URL}\" -o ignite-master.tar.gz\n            tar xzf ignite-master.tar.gz\n            chmod +x ignite-master\n            echo \"[+] Binary erfolgreich installiert.\"\n            exit 0\n        fi\n    fi\nfi\n\n# --------------------------------------------------\n# Fallback: Aus Source bauen\n# --------------------------------------------------\necho \"[+] Kein passendes Release-Binary gefunden, baue aus Source...\"\n\necho \"[+] Installiere Rust via rustup...\"\ncurl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y\nsource \"$HOME/.cargo/env\"\nrustup default stable\n\necho \"[+] Klone Repository: ${GITHUB_REPO}\"\nrm -rf ignite-source\ngit clone --depth 1 \"https://github.com/${GITHUB_REPO}.git\" ignite-source\ncd ignite-source/master\n\necho \"[+] Baue Master (Release)...\"\ncargo build --release\n\necho \"[+] Kopiere Binary...\"\ncp target/release/ignite-master /mnt/server/\ncp /mnt/server/ignite-source/ignite-config.example.toml /mnt/server/ || true\nchmod +x /mnt/server/ignite-master\n\necho \"[+] Build abgeschlossen.\"",
+            "script": "# Ignite Master - Pterodactyl Installer\nset -euo pipefail\n\nGITHUB_REPO=\"{{env.GITHUB_REPO}}\"\nRELEASE_URL=\"https://api.github.com/repos/${GITHUB_REPO}/releases/latest\"\nARCH=\"$(uname -m)\"\n\nmkdir -p /mnt/server\ncd /mnt/server\n\n# 1) Download prebuilt binary (x86_64)\nif [ \"${ARCH}\" = \"x86_64\" ]; then\n    echo \"[+] Architecture: ${ARCH} - trying release download...\"\n    RELEASE_JSON=$(curl -sfL \"${RELEASE_URL}\" || echo \"\")\n    if [ -n \"${RELEASE_JSON}\" ]; then\n        ASSET_URL=$(echo \"${RELEASE_JSON}\" | python3 -c \"\nimport sys,json\nd=json.load(sys.stdin)\nfor a in d.get('assets',[]):\n    if 'x86_64' in a['name'] or 'x86_64' in a['browser_download_url']:\n        print(a['browser_download_url'])\n        break\n\" 2>/dev/null || echo \"\")\n        if [ -n \"${ASSET_URL}\" ]; then\n            echo \"[+] Downloading: ${ASSET_URL}\"\n            curl -sfL \"${ASSET_URL}\" -o release.tar.gz\n            tar xzf release.tar.gz\n            rm release.tar.gz\n            chmod +x ignite-master\n            echo \"[+] Binary installed.\"\n            exit 0\n        fi\n    fi\n    echo \"[!] No release found, building from source...\"\nfi\n\n# 2) Build from source (fallback)\necho \"[+] Building from source (arch: ${ARCH})...\"\nif ! command -v cargo &>/dev/null; then\n    echo \"[+] Installing Rust via rustup...\"\n    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y\n    . \"$HOME/.cargo/env\"\nfi\necho \"[+] Cloning ${GITHUB_REPO}...\"\nrm -rf ignite-src\ngit clone --depth 1 \"https://github.com/${GITHUB_REPO}.git\" ignite-src\ncd ignite-src/master\necho \"[+] Running cargo build --release...\"\ncargo build --release\ncp target/release/ignite-master /mnt/server/\ncp /mnt/server/ignite-src/ignite-config.example.toml /mnt/server/ 2>/dev/null || true\nchmod +x /mnt/server/ignite-master\necho \"[+] Build complete.\"",
             "container": "ghcr.io/pterodactyl/installers:rust",
             "entrypoint": "bash"
         }
@@ -51,7 +51,7 @@
     "variables": [
         {
             "name": "GitHub Repository",
-            "description": "Dein GitHub-Repository im Format 'username/repo'",
+            "description": "Dein GitHub-Repo im Format 'username/repo'",
             "env_variable": "GITHUB_REPO",
             "default_value": "BSXRay/ignite",
             "user_viewable": true,
@@ -60,7 +60,7 @@
         },
         {
             "name": "Pterodactyl Panel URL",
-            "description": "Basis-URL deines Pterodactyl Panels (z.B. https://panel.example.com)",
+            "description": "Basis-URL deines Pterodactyl Panels",
             "env_variable": "PTERODACTYL_URL",
             "default_value": "https://panel.example.com",
             "user_viewable": true,
@@ -69,7 +69,7 @@
         },
         {
             "name": "Pterodactyl API Key",
-            "description": "Client-API-Key aus dem Pterodactyl Panel",
+            "description": "Client-API-Key aus dem Panel",
             "env_variable": "PTERODACTYL_API_KEY",
             "default_value": "",
             "user_viewable": false,
@@ -78,7 +78,7 @@
         },
         {
             "name": "Server A ID",
-            "description": "Pterodactyl Server-ID von Server A (Hauptserver)",
+            "description": "Pterodactyl UUID von Server A (Hauptserver)",
             "env_variable": "SERVER_A_ID",
             "default_value": "uuid-von-server-a",
             "user_viewable": true,
@@ -87,7 +87,7 @@
         },
         {
             "name": "Server B ID",
-            "description": "Pterodactyl Server-ID von Server B (Fallback)",
+            "description": "Pterodactyl UUID von Server B (Fallback)",
             "env_variable": "SERVER_B_ID",
             "default_value": "uuid-von-server-b",
             "user_viewable": true,
@@ -95,8 +95,8 @@
             "rules": "required|string|max:64"
         },
         {
-            "name": "Target A Adresse",
-            "description": "Adresse:Port von Server A (aus Sicht des Masters, z.B. 172.18.0.2:25577)",
+            "name": "Target A Address",
+            "description": "IP:Port von Server A (aus Master-Sicht, z.B. 172.18.0.2:25577)",
             "env_variable": "TARGET_A",
             "default_value": "127.0.0.1:25566",
             "user_viewable": true,
@@ -104,8 +104,8 @@
             "rules": "required|string|max:100"
         },
         {
-            "name": "Target B Adresse",
-            "description": "Adresse:Port von Server B (aus Sicht des Masters, z.B. 172.18.0.3:25577)",
+            "name": "Target B Address",
+            "description": "IP:Port von Server B (aus Master-Sicht)",
             "env_variable": "TARGET_B",
             "default_value": "127.0.0.1:25567",
             "user_viewable": true,
@@ -113,8 +113,8 @@
             "rules": "required|string|max:100"
         },
         {
-            "name": "Backup-Intervall",
-            "description": "Sekunden zwischen Backups (default: 300 = 5 Minuten)",
+            "name": "Backup Interval",
+            "description": "Sekunden zwischen Backups (default: 300 = 5 Min)",
             "env_variable": "BACKUP_INTERVAL",
             "default_value": "300",
             "user_viewable": true,
