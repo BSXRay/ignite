@@ -1,0 +1,20 @@
+master:
+  host: "127.0.0.1"
+  port: 9100
+
+server:
+  id: "server_a"
+  type: "server_a"
+
+backup:
+  interval-seconds: 300
+  compression-level: 6
+  max-size-mb: 5000
+  exclude-paths:
+    - "cache"
+    - "logs"
+    - "crash-reports"
+    - "plugins/IgnitePlugin"
+    - "plugins/Spark"
+    - "libraries"
+    - "versions"

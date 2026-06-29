@@ -1,0 +1,125 @@
+{
+    "_comment": "Ignite Master – Pterodactyl Egg. Installiert den Rust-Master aus dem neuesten GitHub Release.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-06-29T10:00:00+00:00",
+    "name": "Ignite Master",
+    "author": "team@ignite-network",
+    "description": "Zentraler Rust-Master für das Ignite Minecraft-Netzwerk. Empfängt Backups von Servern, steuert Pterodactyl, managed nahtlose Server-Wechsel inkl. Proxy.",
+    "features": null,
+    "docker_images": {
+        "ghcr.io/pterodactyl/installers:rust": "ghcr.io/pterodactyl/installers:rust"
+    },
+    "file_denylist": [],
+    "startup": "./ignite-master",
+    "config": {
+        "files": {
+            "ignite-config.toml": {
+                "parser": "toml",
+                "find": {
+                    "backup.listen_addr": "0.0.0.0:{{server.build.default.port}}",
+                    "proxy.listen_addr": "0.0.0.0:25565",
+                    "api.listen_addr": "0.0.0.0:{{server.build.default.port}}",
+                    "pterodactyl.base_url": "{{env.PTERODACTYL_URL}}",
+                    "pterodactyl.api_key": "{{env.PTERODACTYL_API_KEY}}",
+                    "pterodactyl.server_a_id": "{{env.SERVER_A_ID}}",
+                    "pterodactyl.server_b_id": "{{env.SERVER_B_ID}}",
+                    "proxy.target_a": "{{env.TARGET_A}}",
+                    "proxy.target_b": "{{env.TARGET_B}}",
+                    "servers.backup_interval_secs": "{{env.BACKUP_INTERVAL}}"
+                }
+            }
+        },
+        "startup": {
+            "done": "Proxy gestartet auf"
+        },
+        "logs": {
+            "custom": true,
+            "location": "logs/latest.log"
+        },
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "# ============================================================\n# Ignite Master – Installations-Skript\n# Holt den neuesten Release von GitHub oder baut aus dem Source.\n# ============================================================\n\nset -euo pipefail\n\nGITHUB_REPO=\"{{env.GITHUB_REPO}}\"\nRELEASE_URL=\"https://api.github.com/repos/${GITHUB_REPO}/releases/latest\"\n\nARCH=\"$(uname -m)\"\ncase \"${ARCH}\" in\n    x86_64)  TARGET=\"x86_64-unknown-linux-gnu\" ;;\n    aarch64) TARGET=\"aarch64-unknown-linux-gnu\" ;;\n    armv7l)  TARGET=\"armv7-unknown-linux-gnueabihf\" ;;\n    *)\n        echo \"[!] Unbekannte Architektur: ${ARCH}, baue aus Source...\"\n        BUILD_FROM_SOURCE=1\n        ;;\nesac\n\nmkdir -p /mnt/server\ncd /mnt/server\n\n# --------------------------------------------------\n# Versuche, ein Prebuilt-Binary aus dem Release zu laden\n# --------------------------------------------------\nif [ -z \"${BUILD_FROM_SOURCE:-}\" ]; then\n    echo \"[+] Architektur: ${ARCH} → Target: ${TARGET}\"\n    echo \"[+] Lade Release-Info von ${RELEASE_URL} ...\"\n\n    RELEASE_JSON=$(curl -sfL \"${RELEASE_URL}\" || echo \"\")\n\n    if [ -n \"${RELEASE_JSON}\" ]; then\n        BINARY_URL=$(echo \"${RELEASE_JSON}\" | \\\n            python3 -c \"import sys,json; data=json.load(sys.stdin); \\\n            assets=data.get('assets',[]); \\\n            matches=[a for a in assets if '${TARGET}' in a['name'] or '${TARGET}' in a['browser_download_url']]; \\\n            print(matches[0]['browser_download_url'] if matches else '')\" 2>/dev/null || echo \"\")\n\n        if [ -n \"${BINARY_URL}\" ]; then\n            echo \"[+] Lade Binary herunter: ${BINARY_URL}\"\n            curl -sfL \"${BINARY_URL}\" -o ignite-master.tar.gz\n            tar xzf ignite-master.tar.gz\n            chmod +x ignite-master\n            echo \"[+] Binary erfolgreich installiert.\"\n            exit 0\n        fi\n    fi\nfi\n\n# --------------------------------------------------\n# Fallback: Aus Source bauen\n# --------------------------------------------------\necho \"[+] Kein passendes Release-Binary gefunden, baue aus Source...\"\n\necho \"[+] Installiere Rust via rustup...\"\ncurl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y\nsource \"$HOME/.cargo/env\"\nrustup default stable\n\necho \"[+] Klone Repository: ${GITHUB_REPO}\"\nrm -rf ignite-source\ngit clone --depth 1 \"https://github.com/${GITHUB_REPO}.git\" ignite-source\ncd ignite-source/master\n\necho \"[+] Baue Master (Release)...\"\ncargo build --release\n\necho \"[+] Kopiere Binary...\"\ncp target/release/ignite-master /mnt/server/\ncp /mnt/server/ignite-source/ignite-config.example.toml /mnt/server/ || true\nchmod +x /mnt/server/ignite-master\n\necho \"[+] Build abgeschlossen.\"",
+            "container": "ghcr.io/pterodactyl/installers:rust",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "GitHub Repository",
+            "description": "Dein GitHub-Repository im Format 'username/repo'",
+            "env_variable": "GITHUB_REPO",
+            "default_value": "dein-username/ignite",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100"
+        },
+        {
+            "name": "Pterodactyl Panel URL",
+            "description": "Basis-URL deines Pterodactyl Panels (z.B. https://panel.example.com)",
+            "env_variable": "PTERODACTYL_URL",
+            "default_value": "https://panel.example.com",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200"
+        },
+        {
+            "name": "Pterodactyl API Key",
+            "description": "Client-API-Key aus dem Pterodactyl Panel",
+            "env_variable": "PTERODACTYL_API_KEY",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": true,
+            "rules": "required|string|max:200"
+        },
+        {
+            "name": "Server A ID",
+            "description": "Pterodactyl Server-ID von Server A (Hauptserver)",
+            "env_variable": "SERVER_A_ID",
+            "default_value": "uuid-von-server-a",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64"
+        },
+        {
+            "name": "Server B ID",
+            "description": "Pterodactyl Server-ID von Server B (Fallback)",
+            "env_variable": "SERVER_B_ID",
+            "default_value": "uuid-von-server-b",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64"
+        },
+        {
+            "name": "Target A Adresse",
+            "description": "Adresse:Port von Server A (aus Sicht des Masters, z.B. 172.18.0.2:25577)",
+            "env_variable": "TARGET_A",
+            "default_value": "127.0.0.1:25566",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100"
+        },
+        {
+            "name": "Target B Adresse",
+            "description": "Adresse:Port von Server B (aus Sicht des Masters, z.B. 172.18.0.3:25577)",
+            "env_variable": "TARGET_B",
+            "default_value": "127.0.0.1:25567",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100"
+        },
+        {
+            "name": "Backup-Intervall",
+            "description": "Sekunden zwischen Backups (default: 300 = 5 Minuten)",
+            "env_variable": "BACKUP_INTERVAL",
+            "default_value": "300",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|min:30|max:86400"
+        }
+    ]
+}

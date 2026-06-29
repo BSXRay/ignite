@@ -1,0 +1,13 @@
+name: IgnitePlugin
+version: 1.0.0
+main: com.ignite.plugin.IgnitePlugin
+api-version: 1.21
+load: STARTUP
+authors: [Ignite Team]
+description: Ignite Backup & Sync Agent - sendet Server-Backups an den Master
+
+commands:
+  ignite:
+    description: Ignite Plugin Befehle
+    usage: /ignite <reload|status|backup>
+    permission: ignite.admin

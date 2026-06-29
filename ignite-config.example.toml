@@ -1,0 +1,29 @@
+# Ignite Master Konfiguration
+# Kopiere diese Datei nach ignite-config.toml und passe sie an
+
+[backup]
+listen_addr = "0.0.0.0:9100"
+data_dir = "data/backups"
+compression_level = 6
+
+[pterodactyl]
+base_url = "https://panel.dein-server.com"
+api_key = "ptlc_dein-api-key"
+server_a_id = "uuid-von-server-a"
+server_b_id = "uuid-von-server-b"
+
+[proxy]
+listen_addr = "0.0.0.0:25565"
+target_a = "127.0.0.1:25566"
+target_b = "127.0.0.1:25567"
+connect_timeout_secs = 10
+
+[api]
+listen_addr = "127.0.0.1:9200"
+
+[servers]
+backup_interval_secs = 300
+sync_timeout_secs = 120
+health_check_interval_secs = 10
+health_check_max_retries = 12
+graceful_shutdown_secs = 30
