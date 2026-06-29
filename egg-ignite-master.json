@@ -14,30 +14,9 @@
     "file_denylist": [],
     "startup": "./ignite-master",
     "config": {
-        "files": {
-            "ignite-config.toml": {
-                "parser": "toml",
-                "find": {
-                    "backup.listen_addr": "0.0.0.0:{{server.build.default.port}}",
-                    "proxy.listen_addr": "0.0.0.0:25565",
-                    "api.listen_addr": "0.0.0.0:{{server.build.default.port}}",
-                    "pterodactyl.base_url": "{{env.PTERODACTYL_URL}}",
-                    "pterodactyl.api_key": "{{env.PTERODACTYL_API_KEY}}",
-                    "pterodactyl.server_a_id": "{{env.SERVER_A_ID}}",
-                    "pterodactyl.server_b_id": "{{env.SERVER_B_ID}}",
-                    "proxy.target_a": "{{env.TARGET_A}}",
-                    "proxy.target_b": "{{env.TARGET_B}}",
-                    "servers.backup_interval_secs": "{{env.BACKUP_INTERVAL}}"
-                }
-            }
-        },
-        "startup": {
-            "done": "Proxy gestartet auf"
-        },
-        "logs": {
-            "custom": true,
-            "location": "logs/latest.log"
-        },
+        "files": "{\"ignite-config.toml\": {\"parser\": \"toml\", \"find\": {\"backup.listen_addr\": \"0.0.0.0:{{server.build.default.port}}\", \"proxy.listen_addr\": \"0.0.0.0:25565\", \"api.listen_addr\": \"0.0.0.0:{{server.build.default.port}}\", \"pterodactyl.base_url\": \"{{env.PTERODACTYL_URL}}\", \"pterodactyl.api_key\": \"{{env.PTERODACTYL_API_KEY}}\", \"pterodactyl.server_a_id\": \"{{env.SERVER_A_ID}}\", \"pterodactyl.server_b_id\": \"{{env.SERVER_B_ID}}\", \"proxy.target_a\": \"{{env.TARGET_A}}\", \"proxy.target_b\": \"{{env.TARGET_B}}\", \"servers.backup_interval_secs\": \"{{env.BACKUP_INTERVAL}}\"}}}",
+        "startup": "{\"done\": \"Proxy gestartet auf\"}",
+        "logs": "{\"custom\": true, \"location\": \"logs/latest.log\"}",
         "stop": "^C"
     },
     "scripts": {
