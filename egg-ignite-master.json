@@ -9,7 +9,7 @@
     "description": "Zentraler Rust-Master für das Ignite Minecraft-Netzwerk. Empfängt Backups von Servern, steuert Pterodactyl, managed nahtlose Server-Wechsel inkl. Proxy.",
     "features": null,
     "docker_images": {
-        "Debian (installer)": "ghcr.io/pterodactyl/installers:debian"
+        "Debian": "ghcr.io/pterodactyl/installers:debian"
     },
     "file_denylist": [],
     "startup": "./ignite-master",
