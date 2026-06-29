@@ -53,7 +53,7 @@
             "name": "GitHub Repository",
             "description": "Dein GitHub-Repository im Format 'username/repo'",
             "env_variable": "GITHUB_REPO",
-            "default_value": "dein-username/ignite",
+            "default_value": "BSXRay/ignite",
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|string|max:100"
