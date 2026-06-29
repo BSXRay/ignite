@@ -1,16 +1,15 @@
 {
-    "_comment": "Ignite Master – Pterodactyl Egg. Installiert den Rust-Master aus dem neuesten GitHub Release.",
     "meta": {
         "version": "PTDL_v2",
         "update_url": null
     },
     "exported_at": "2026-06-29T10:00:00+00:00",
     "name": "Ignite Master",
-    "author": "team@ignite-network",
+    "author": "team@ignite.network",
     "description": "Zentraler Rust-Master für das Ignite Minecraft-Netzwerk. Empfängt Backups von Servern, steuert Pterodactyl, managed nahtlose Server-Wechsel inkl. Proxy.",
     "features": null,
     "docker_images": {
-        "ghcr.io/pterodactyl/installers:rust": "ghcr.io/pterodactyl/installers:rust"
+        "Debian (installer)": "ghcr.io/pterodactyl/installers:debian"
     },
     "file_denylist": [],
     "startup": "./ignite-master",
@@ -44,7 +43,7 @@
     "scripts": {
         "installation": {
             "script": "# Ignite Master - Pterodactyl Installer\nset -euo pipefail\n\nGITHUB_REPO=\"{{env.GITHUB_REPO}}\"\nRELEASE_URL=\"https://api.github.com/repos/${GITHUB_REPO}/releases/latest\"\nARCH=\"$(uname -m)\"\n\nmkdir -p /mnt/server\ncd /mnt/server\n\n# 1) Download prebuilt binary (x86_64)\nif [ \"${ARCH}\" = \"x86_64\" ]; then\n    echo \"[+] Architecture: ${ARCH} - trying release download...\"\n    RELEASE_JSON=$(curl -sfL \"${RELEASE_URL}\" || echo \"\")\n    if [ -n \"${RELEASE_JSON}\" ]; then\n        ASSET_URL=$(echo \"${RELEASE_JSON}\" | python3 -c \"\nimport sys,json\nd=json.load(sys.stdin)\nfor a in d.get('assets',[]):\n    if 'x86_64' in a['name'] or 'x86_64' in a['browser_download_url']:\n        print(a['browser_download_url'])\n        break\n\" 2>/dev/null || echo \"\")\n        if [ -n \"${ASSET_URL}\" ]; then\n            echo \"[+] Downloading: ${ASSET_URL}\"\n            curl -sfL \"${ASSET_URL}\" -o release.tar.gz\n            tar xzf release.tar.gz\n            rm release.tar.gz\n            chmod +x ignite-master\n            echo \"[+] Binary installed.\"\n            exit 0\n        fi\n    fi\n    echo \"[!] No release found, building from source...\"\nfi\n\n# 2) Build from source (fallback)\necho \"[+] Building from source (arch: ${ARCH})...\"\nif ! command -v cargo &>/dev/null; then\n    echo \"[+] Installing Rust via rustup...\"\n    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y\n    . \"$HOME/.cargo/env\"\nfi\necho \"[+] Cloning ${GITHUB_REPO}...\"\nrm -rf ignite-src\ngit clone --depth 1 \"https://github.com/${GITHUB_REPO}.git\" ignite-src\ncd ignite-src/master\necho \"[+] Running cargo build --release...\"\ncargo build --release\ncp target/release/ignite-master /mnt/server/\ncp /mnt/server/ignite-src/ignite-config.example.toml /mnt/server/ 2>/dev/null || true\nchmod +x /mnt/server/ignite-master\necho \"[+] Build complete.\"",
-            "container": "ghcr.io/pterodactyl/installers:rust",
+            "container": "ghcr.io/pterodactyl/installers:debian",
             "entrypoint": "bash"
         }
     },
@@ -56,7 +55,8 @@
             "default_value": "BSXRay/ignite",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|max:100"
+            "rules": "required|string|max:100",
+            "field_type": "text"
         },
         {
             "name": "Pterodactyl Panel URL",
@@ -65,7 +65,8 @@
             "default_value": "https://panel.example.com",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|max:200"
+            "rules": "required|string|max:200",
+            "field_type": "text"
         },
         {
             "name": "Pterodactyl API Key",
@@ -74,7 +75,8 @@
             "default_value": "",
             "user_viewable": false,
             "user_editable": true,
-            "rules": "required|string|max:200"
+            "rules": "required|string|max:200",
+            "field_type": "text"
         },
         {
             "name": "Server A ID",
@@ -83,7 +85,8 @@
             "default_value": "uuid-von-server-a",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|max:64"
+            "rules": "required|string|max:64",
+            "field_type": "text"
         },
         {
             "name": "Server B ID",
@@ -92,7 +95,8 @@
             "default_value": "uuid-von-server-b",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|max:64"
+            "rules": "required|string|max:64",
+            "field_type": "text"
         },
         {
             "name": "Target A Address",
@@ -101,7 +105,8 @@
             "default_value": "127.0.0.1:25566",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|max:100"
+            "rules": "required|string|max:100",
+            "field_type": "text"
         },
         {
             "name": "Target B Address",
@@ -110,7 +115,8 @@
             "default_value": "127.0.0.1:25567",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|max:100"
+            "rules": "required|string|max:100",
+            "field_type": "text"
         },
         {
             "name": "Backup Interval",
@@ -119,7 +125,8 @@
             "default_value": "300",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|numeric|min:30|max:86400"
+            "rules": "required|numeric|min:30|max:86400",
+            "field_type": "text"
         }
     ]
 }
